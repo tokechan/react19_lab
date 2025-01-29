@@ -2,14 +2,19 @@ import { BookManage, BookManageJson, BookState } from "./domain/book";
 
 export const handleAddBook = async (
     prevState: BookState,
-    formData: FormData
+    formData: FormData,
+    updateOptimisticBooks: (prevState: BookManage[]) => void
 ): Promise<BookState> => {
-
     const name = formData.get("bookName") as string;
 
     if (!name) {
         throw new Error("Book name is required");
     }
+
+    updateOptimisticBooks([
+        ...prevState.allBooks,
+        new BookManage(0, name, "在庫あり"),
+    ]);
 
     const response = await fetch("http://localhost:8080/books", {
         method: "POST",
@@ -61,7 +66,8 @@ export const handleSearchBooks = async (
 
 export const handleUpdateBook = async (
     prevState: BookState,
-    formData: FormData
+    formData: FormData,
+    updateOptimisticBooks: (prevState: BookManage[]) => void
 ): Promise<BookState> => {
         const id = Number(formData.get("id"));
         const status = formData.get("status") as string;
@@ -77,6 +83,12 @@ export const handleUpdateBook = async (
         if (!response.ok) {
             throw new Error("Failed to update book");
         }
+
+        updateOptimisticBooks(
+            prevState.allBooks.map((book) => 
+                book.id === id ? { ...book, status } : book
+            )
+        );
 
         const updatedBook = await response.json();
         const updatedBooks = prevState.allBooks.map((book) => 
